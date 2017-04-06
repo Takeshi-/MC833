@@ -1,3 +1,6 @@
+/* Fiz pequenas mudanças para ser sempre continuo -> do while*/
+/* Por algum motivo ainda nao funciona pra parar a conexao */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -8,17 +11,12 @@
 #define MAX_PENDING 5
 #define MAX_LINE 256
 
-int main(int argc, char *argv[])
+int main()
 {
     struct sockaddr_in socket_address,client;
     char buf[MAX_LINE];
     unsigned int len;
     int s, new_s,ac,valid;
-    
-    if (argc != 3){
-        printf("Number of arguments incorrect.\n");
-        exit(1);
-    }
     
     /* criação da estrutura de dados de endereço */
     bzero((char *)&socket_address, sizeof(socket_address));
@@ -39,7 +37,7 @@ int main(int argc, char *argv[])
 
 	/* Associar socket ao descritor */
 	//(...)
-	if (bind(s,(struct sockaddr *)&socket_address,sizeof(socket_address)) == -1) {
+	if (bind(s,(struct sockaddr *)&socket_address,sizeof(socket_address)) < 0) {
         printf("Error in binding.\n");
         exit(1);
     }
@@ -50,24 +48,32 @@ int main(int argc, char *argv[])
     new_s = sizeof(client);
     /* aguardar/aceita conexão, receber e imprimir texto na tela, enviar eco */
 	//(...)
-	while(1){
-        ac = accept(s,(struct sockaddr *)&client,&new_s);
-        if (ac == -1){
-            printf("Error in accepting.\n");
-            exit(1);
-        }
-        else {
-            printf("Connected to client.\n");
-        }
-        valid = read(ac,(char *)buf, MAX_LINE);
-        if (strcmp(buf,"Close")){
-            printf("Client closed connection.\n");
-            break;
+	
+    ac = accept(s,(struct sockaddr *)&client,&new_s);
+    if (ac == -1){
+        printf("Error in accepting.\n");
+        exit(1);
+    }
+    else {
+        printf("####Connected to client####\n");
+    }
+    do{
+        bzero(buf,MAX_LINE);
+        valid = read(ac,buf, MAX_LINE);
+        if (valid < 0){
+            printf("ERROR\nCould not read from socket\n");
+            exit(1);            
         }
         printf("Client: %s\n",buf);
-        valid = write(ac,(char *)buf, MAX_LINE);
-    }
+        valid = write(ac,buf, MAX_LINE);
+        if (valid < 0) {
+            printf("ERROR \nCould not write to socket\n");
+            exit(1);
+        }
+        
+    } while(strcmp(buf,"quit") != 0);
     
     close(s);
+    
     return 0;
 }

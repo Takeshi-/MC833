@@ -1,6 +1,6 @@
-************************** 
-******** Esqueleto 1 *****
-************************** 
+/* Fiz pequenas mudanças para ser sempre continuo -> do while */
+/* Por algum motivo ainda nao funciona pra parar a conexao */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -20,23 +20,74 @@ int main(int argc, char * argv[])
         int len;
 
 
-	/* verificação de argumentos */
-	(...)
+	/* verificacao de argumentos */
+	if (argc > 2){
+		printf(" ERROR \nToo many arguments!\n Was expecting only one argument: HOSTNAME\n");
+		exit(1);
+	}
 
-	/* tradução de nome para endereço IP */
-	(...)
+	if (argc < 2) {
+		printf(" ERROR \nMissing argument!\n Was expecting one argument: HOSTNAME\n");
+		exit(1);	
+	}
+	 
+	/* le hostname */
+	host = argv[1];
 
-        /* criação da estrutura de dados de endereço */
-        bzero((char *)&socket_address, sizeof(socket_address));
-	(...)
 
-        /* criação de socket ativo*/
-	(...)
+	/* traducao de nome para endereco IP */
+	 if ( (host_address = gethostbyname(host) ) == NULL ) {
+		printf(" ERROR \nCould not resolve HOSTNAME\n");      
+		exit(1); 
+  	}
+	
 
-	/* estabelecimento da conexão */
-	(...)
+    /* criacao da estrutura de dados de endereco */
+    bzero((char *)&socket_address, sizeof(socket_address));
+	socket_address.sin_family = AF_INET;
+  	socket_address.sin_port = htons(SERVER_PORT);		
+   	bcopy((char *)host_address->h_addr, (char *)&socket_address.sin_addr.s_addr, host_address->h_length);
+  		
+
+   /* criacao de socket ativo*/
+	s = socket(AF_INET, SOCK_STREAM, 0);
+	if (s < 0) {
+    	printf("ERROR \nCould not open socket");
+     	exit(1);
+   	}
+	
+	/* estabelecimento da conexao */
+
+	if ( connect(s, (struct sockaddr *)&socket_address, sizeof(socket_address) ) < 0) {
+		printf(" ERROR \nConnection Failed\n");           
+		exit(1); 
+  	}
+	
 
         /* ler e enviar linhas de texto, receber eco */
-	(...)
+    do {
+        printf("Please enter a message: ");
+        bzero(buf,	MAX_LINE);
+        fgets(buf,MAX_LINE-1,stdin);
 
+        /* Send message to the server */
+        len = write(s, buf, MAX_LINE);
+    
+        if (len < 0) {
+            printf("ERROR\nCould not write to socket\n");
+            exit(1);
+        }
+    
+        /* Now read server response */
+        bzero(buf,MAX_LINE);
+        len = read(s, buf, MAX_LINE);
+    
+        if (len < 0) {
+            printf("ERROR\nCould not read from socket\n");
+            exit(1);
+        }
+        
+        printf("%s\n",buf);
+    } while (strcmp(buf,"quit") != 0);
+	return 0;
 }
