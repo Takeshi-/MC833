@@ -63,8 +63,11 @@ int main(int argc, char * argv[])
 		exit(1); 
   	}
 	
-
-        /* ler e enviar linhas de texto, receber eco */
+    printf("Connected to server %s.\n",argv[1]);
+    
+    printf("To end connection press 'Ctrl+C' .\n\n");
+    
+    /* ler e enviar linhas de texto, receber eco */
     do {
         printf("Please enter a message: ");
         bzero(buf,	MAX_LINE);
@@ -87,7 +90,8 @@ int main(int argc, char * argv[])
             exit(1);
         }
         
-        printf("%s\n",buf);
-    } while (strcmp(buf,"quit") != 0);
+        printf("ECO Responce from server: %s\n",buf);
+        
+    } while (strcmp(buf,"quit\n") != 0);
 	return 0;
 }
