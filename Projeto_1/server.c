@@ -45,6 +45,9 @@ int main()
 	/* Criar escuta do socket para aceitar conexões */
 	//(...)
 	listen(s,MAX_PENDING);
+    
+    printf("Waiting for client connecttion...\n");
+    
     new_s = sizeof(client);
     /* aguardar/aceita conexão, receber e imprimir texto na tela, enviar eco */
 	//(...)
@@ -55,8 +58,9 @@ int main()
         exit(1);
     }
     else {
-        printf("####Connected to client####\n");
+        printf("####Connected to client####\n\n");
     }
+    
     do{
         bzero(buf,MAX_LINE);
         valid = read(ac,buf, MAX_LINE);
@@ -71,7 +75,7 @@ int main()
             exit(1);
         }
         
-    } while(strcmp(buf,"quit") != 0);
+    } while(strcmp(buf,"quit\n") != 0);
     
     close(s);
     
