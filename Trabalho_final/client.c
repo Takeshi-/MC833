@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <time.h>
+#include <math.h>
 #include <netdb.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -20,6 +22,7 @@ int main(int argc, char * argv[])
         struct sockaddr_in socket_address;
         char *host;
         char buf[MAX_LINE];
+        char *timestamp;
         int s;
         int len;
 
@@ -83,10 +86,9 @@ int main(int argc, char * argv[])
 
     /* ler e enviar linhas de texto, receber eco */
     do {
-        printf("\nPlease enter the following:\nSpeed Position Avenue(North=0,East=1,South=2,West=3) Direction(1 ou -1) Time Size\n");
+        printf("\nPlease enter the following:\nSpeed Position Avenue(North=0,East=1,South=2,West=3) Direction(1 ou -1) Size Time\n");
         bzero(buf,	MAX_LINE);
         fgets(buf,MAX_LINE-1,stdin);
-
         /* Send message to the server */
         len = write(s, buf, MAX_LINE);
 

@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <math.h>
 #include <netdb.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -14,6 +15,7 @@
 #define LISTEN_PORT 12345
 #define MAX_PENDING 5
 #define MAX_LINE 256
+#define INF -10000
 
 enum Direction {
   north =0,
@@ -41,8 +43,8 @@ Carro initiateCar(int val[]) {
     car.veloc = val[0];
     car.pos = val[1];
     car.av = val[2];
-    car.tempo = val[4];
-    car.size = val[5];
+    car.tempo = val[5];
+    car.size = val[4];
     if ( (val[3] > 0 && (car.av == north || car.av == east)) || (val[3] < 0 && (car.av == west || car.av == south)) ) {
         car.z1.t_enter = -1;
         car.z2.t_enter = -1;
@@ -50,25 +52,25 @@ Carro initiateCar(int val[]) {
         car.z2.t_out = -1;
     }
     else {
-        car.z1.t_enter = (car.pos/car.veloc + car.tempo);
-        car.z2.t_enter = ((car.pos+1)/car.veloc + car.tempo);
-        car.z1.t_out = ((car.pos+car.size+1)/car.veloc + car.tempo);
-        car.z2.t_out = ((car.pos+car.size+1)/car.veloc + car.tempo);
+        car.z1.t_enter = (fabs(car.pos)/car.veloc + car.tempo);
+        car.z2.t_enter = ((fabs(car.pos)+1)/car.veloc + car.tempo);
+        car.z1.t_out = ((fabs(car.pos)+car.size)/car.veloc + car.tempo);
+        car.z2.t_out = ((fabs(car.pos)+car.size+1)/car.veloc + car.tempo);
     }
     return car;
 }
 
 int collision(Carro cars[],int col1,int *col2,float *colTime){
-    flag =0;
+    int flag =0;
     if (cars[col1].z1.t_enter >= cars[((col1+5)%4)].z2.t_enter && cars[col1].z1.t_enter <= cars[((col1+5)%4)].z2.t_out){
-        (*col2) = (i+5)%4;
+        (*col2) = (col1+5)%4;
         (*colTime) = cars[col1].z1.t_enter;
         flag =1;
     }
         //Vizinho da esquerda
-    if (cars[i].z2.t_enter >= cars[((i+7)%4)].z1.t_enter && cars[i].z2.t_enter <= cars[((i+7)%4)].z1.t_out){
-        (*col2) = (i+7)%4;
-        (*colTime) = cars[i].z2.t_enter;
+    if (cars[col1].z2.t_enter >= cars[((col1+7)%4)].z1.t_enter && cars[col1].z2.t_enter <= cars[((col1+7)%4)].z1.t_out){
+        (*col2) = (col1+7)%4;
+        (*colTime) = cars[col1].z2.t_enter;
         flag =1;
     }
 
@@ -100,10 +102,10 @@ Carro *CopyStructNewV(Carro cars[],int col2, float newV){
         }
         else {
             new[i].veloc = newV;
-            new[i].z1.t_enter = (new[i].pos/new[i].veloc + new[i].tempo);
-            new[i].z2.t_enter = ((new[i].pos+1)/new[i].veloc + new[i].tempo);
-            new[i].z1.t_out = ((new[i].pos+new[i].size+1)/new[i].veloc + new[i].tempo);
-            new[i].z2.t_out = ((new[i].pos+new[i].size+1)/new[i].veloc + new[i].tempo);
+            new[i].z1.t_enter = (fabs(new[i].pos)/new[i].veloc + new[i].tempo);
+            new[i].z2.t_enter = ((fabs(new[i].pos)+1)/new[i].veloc + new[i].tempo);
+            new[i].z1.t_out = ((fabs(new[i].pos)+new[i].size)/new[i].veloc + new[i].tempo);
+            new[i].z2.t_out = ((fabs(new[i].pos)+new[i].size+1)/new[i].veloc + new[i].tempo);
         }
     }
     return new;
@@ -114,7 +116,7 @@ int main()
   struct sockaddr_in socket_address, client;
   char buf[MAX_LINE];
   unsigned int len;
-  int s, new_s, ac, valid,i,val[6],aux,col1,col2,flag;
+  int s, new_s, ac, valid,i,aux,col1,col2,flag;
   float colTime,newV;
   char *resp;
   pid_t p;
@@ -124,6 +126,10 @@ int main()
   char ipstr[INET6_ADDRSTRLEN];
   int port, sockfd, client_num, maxfd, nready, clients[FD_SETSIZE];
   fd_set all_fds, new_set;
+
+  int val[6] = {INF,INF,INF,INF,INF,INF};
+  for (i=0;i<4;i++)
+    cars[i] = initiateCar(val);
 
   /* criação da estrutura de dados de endereço */
   bzero((char *)&socket_address, sizeof(socket_address));
@@ -247,10 +253,13 @@ int main()
               pch = strtok (NULL, " ,");
               aux++;
           }
-
-          if (val[4] > colTime){
-              //TODO:imprimir chamar ambulancia
+          if (aux < 6){
+            printf("Client has given less information than necessary.\n");
           }
+
+          /*if (val[4] > colTime){
+              //TODO:imprimir chamar ambulancia
+          }*/
 
           if (val[4] > cars[i].tempo) {
               cars[i] = initiateCar(val);
@@ -259,51 +268,47 @@ int main()
 
           if (flag) {
               //TODO: alertar carros envolvidos de possivel colisao
+              sprintf(buf,"With your Speed there will be a collision %d.\n",i);
 
               //resp = "colisao entre col1 e col2";
 
               if (cars[i].veloc <= 5) {
-                      //resp = "Pare.\n"/;
-                      //TODO: Mudar para qual mandar
-                      valid = write(sockfd,resp, MAX_LINE);
-                  }
-                  else {
-                      newV = freia(cars[i].pos,cars[i].tempo,colTime);
+                      strcat(buf,"Pare.\n");
+              }
+              else {
+                  newV = freia(cars[i].pos,cars[i].tempo,colTime);
+                  newCars = CopyStructNewV(cars,i,newV);
+                  if (collision(newCars,i,&col2,&colTime)) {
+                      newV = acelera(cars[i].pos,cars[i].tempo,colTime);
                       newCars = CopyStructNewV(cars,i,newV);
+                      //TODO: arrumar saida
                       if (collision(newCars,i,&col2,&colTime)) {
-                          newV = acelera(cars[i].pos,cars[i].tempo,colTime);
-                          newCars = CopyStructNewV(cars,i,newV);
-                          //TODO: arrumar saida
-                          if (collision(newCars,i,&col2,&colTime)) {
-                              //resp = "Pare.\n";
-                              //TODO: Mudar para qual mandar
-                              valid = write(sockfd,resp, MAX_LINE);
-                          }
-                          else {
-                              //resp = "Acelere para %f.\n",newV;
-                              //TODO: Mudar para qual mandar
-                              valid = write(sockfd,resp, MAX_LINE);
-                          }
+                          strcat(buf,"Pare.\n");
                       }
                       else {
-                          //resp = "Freie para %f.\n",newV;
-                          //TODO: Mudar para qual mandar
-                          valid = write(sockfd,resp, MAX_LINE);
+                          sprintf(resp,"Acelere para %f.\n",newV);
+                          strcat(buf,resp);
                       }
+                  }
+                  else {
+                      sprintf(resp,"Freie para %f.\n",newV);
+                      strcat(buf,resp);
                   }
               }
           }
-
-          valid = write(sockfd,buf, MAX_LINE);
-          if (valid <= 0) {
-            printf("ERROR\nCould not write to socket\n");
-            exit(1);
+          else {
+              strcpy(buf,"No problem.\n");
           }
         }
-        if (--nready <= 0)
-          break;
+
+        valid = write(sockfd,buf, MAX_LINE);
+        if (valid <= 0) {
+          printf("ERROR\nCould not write to socket\n");
+        }
       }
-    }
+      if (--nready <= 0)
+        break;
+      }
   }
   return 0;
 }
