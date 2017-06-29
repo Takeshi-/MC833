@@ -16,6 +16,8 @@
 #define SERVER_PORT 12345
 #define MAX_LINE 256
 
+//TODO: loop 100 ms para entretenimento, mandar mensagem pedindo resposta
+
 int main(int argc, char * argv[])
 {
         struct hostent *host_address;
@@ -91,7 +93,7 @@ int main(int argc, char * argv[])
         fgets(buf,MAX_LINE-1,stdin);
         /* Send message to the server */
         len = write(s, buf, MAX_LINE);
-
+        
         if (len <= 0) {
             printf("ERROR\nCould not write to socket\n");
             exit(1);
