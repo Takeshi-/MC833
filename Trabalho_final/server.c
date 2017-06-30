@@ -64,7 +64,7 @@ Carro *initiateCar(float val[]) {
 
 int collision(Carro **cars,int col1,int *col2,float *colTime){
     int flag =0;
-    
+
     //Vizinho da direita
     if ((cars[col1]->z1).t_enter >= (cars[((col1+5)%4)]->z2).t_enter && (cars[col1]->z1).t_enter <= (cars[((col1+5)%4)]->z2).t_out){
         (*col2) = (col1+5)%4;
@@ -91,7 +91,7 @@ float acelera(int pos0, float t0,float tF) {
 
 Carro **CopyStructNewV(Carro **cars,int col2, int newV){
     Carro **new = calloc(4,sizeof(Carro *));
-    
+
     int i;
     for (i=0;i<4;i++) {
         new[i] = calloc(1,sizeof(Carro));
@@ -136,7 +136,7 @@ int main()
 
     cars = calloc(4,sizeof(Carro *));
 
-    int val[6] = {INF,INF,3,INF,INF,INF};
+    float val[6] = {INF,INF,3,INF,INF,INF};
     for (i=0;i<4;i++)
         cars[i] = initiateCar(val);
 
@@ -261,48 +261,58 @@ int main()
                         aux++;
                     }
                     if (aux < 6){
-                        printf("Client has given less information than necessary.\n");
+                        sprintf(buf,"Client has given less information than necessary.\n");
                     }
-
-                    flag = 0;
-                    if (val[4] > cars[val[2]]->tempo) {
-                        printf("val[2] = %d\n",val[2]);
-                        free(cars[val[2]]);
-                        cars[val[2]] = initiateCar(val);
-                        flag = collision(cars,val[2],&col2,&colTime);
-                    }
-                    if (flag) {
-                        sprintf(buf,"With your Speed there will be a collision %d.\n",i);
-
-                        //resp = "colisao entre col1 e col2";
-
-                        if (cars[val[2]]->veloc <= 5) {
-                                strcat(buf,"Pare.\n");
+                    else {
+                        flag = 0;
+                        if (val[4] > cars[(int)val[2]]->tempo) {
+                            free(cars[(int)val[2]]);
+                            cars[(int)val[2]] = initiateCar(val);
+                            flag = collision(cars,(int)val[2],&col2,&colTime);
                         }
-                        else {
-                            newV = freia(cars[i]->pos,cars[i]->tempo,colTime);
-                            newCars = CopyStructNewV(cars,i,newV);
-                            if (collision(newCars,i,&col2,&colTime)) {
-                                newV = acelera(cars[i]->pos,cars[i]->tempo,colTime);
-                                newCars = CopyStructNewV(cars,i,newV);
-                                if (collision(newCars,i,&col2,&colTime)) {
-                                    
-                                    strcat(buf,"Colisão.\n");
+                        if (flag) {
+                            if (col2 == 0)
+                                sprintf(buf,"With your Speed there will be a collision with North Avenue.\n");
+                            else if (col2 == 1)
+                                sprintf(buf,"With your Speed there will be a collision with East Avenue.\n");
+                            else if (col2 == 2)
+                                sprintf(buf,"With your Speed there will be a collision with South Avenue.\n");
+                            else
+                                sprintf(buf,"With your Speed there will be a collision with West Avenue.\n");
+                            printf("colTime = %f\n",colTime);
+                            //resp = "colisao entre col1 e col2";
+
+                            if (cars[(int)val[2]]->veloc <= 5) {
+                                    strcat(buf,"Stop.\n");
+                            }
+                            else {
+                                newV = freia(cars[(int)val[2]]->pos,cars[(int)val[2]]->tempo,colTime);
+                                printf("freia -> %f\n",newV);
+                                newCars = CopyStructNewV(cars,(int)val[2],newV);
+                                if (collision(newCars,(int)val[2],&col2,&colTime) || (newV < 0)) {
+                                    newV = acelera(cars[(int)val[2]]->pos,cars[(int)val[2]]->tempo,colTime);
+                                    printf("colTime = %f\n",colTime);
+                                    printf("acelera -> %f\n",newV);
+                                    newCars = CopyStructNewV(cars,(int)val[2],newV);
+                                    if (collision(newCars,(int)val[2],&col2,&colTime) || (newV < 0)) {
+
+                                        strcat(buf,"Collision.\n");
+                                    }
+                                    else {
+                                        sprintf(resp,"Accelerate to %f.\n",newV);
+                                        strcat(buf,resp);
+                                    }
                                 }
                                 else {
-                                    sprintf(resp,"Acelere para %f.\n",newV);
+
+                                    sprintf(resp,"Brake to %f.\n",newV);
                                     strcat(buf,resp);
                                 }
                             }
-                            else {
-                                
-                                sprintf(resp,"Freie para %f.\n",newV);
-                                strcat(buf,resp);
-                            }
                         }
-                    }
-                    else {
-                        strcpy(buf,"No problem.\n");
+                        else {
+                            strcpy(buf,"No problem.\n");
+                        }
                     }
                 }
 
@@ -310,9 +320,9 @@ int main()
                 if (valid <= 0) {
                     printf("ERROR\nCould not write to socket\n");
                 }
+                if (--nready <= 0)
+                    break;
             }
-            if (--nready <= 0)
-                break;
 
         }
     }
